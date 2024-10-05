@@ -295,12 +295,12 @@ vec4 powervr2(vec2 uv){
 
 //end powervr2
 
-vec4 fetch_offset(float offset, float one_x){
+vec4 fetch_offset(float offset, float one_x, float one_y){
 	// begin ntsc-pass1
 	
 	float FrameCount = floor(mod(CurrentTime*60.0, 2.0));
    	
-	vec2 offset2 = vTexCoord.xy + vec2((offset) * (one_x), 0.0);
+	vec2 offset2 = vTexCoord.xy + vec2((offset) * (one_x), one_y);
 	vec3 col = powervr2(offset2).rgb;//COMPAT_TEXTURE(Texture, offset2).rgb;
 	vec3 yiq = rgb2yiq(col);
 	
@@ -327,16 +327,17 @@ vec4 fetch_offset(float offset, float one_x){
 void main(void) {
 	// begin ntsc-pass2-gamma
 
+	float one_y = -(1.0 / (DISPLAY_SIZE.y));
 	float one_x = 1.0 / (DISPLAY_SIZE.x * 4.0);
 	vec3 signal = vec3(0.0);
 	for (int i = 0; i < TAPS; i++)
 	{
 		float offset = float(i);
-		vec3 sums = fetch_offset(offset - float(TAPS), one_x).xyz +
-			fetch_offset(float(TAPS) - offset, one_x).xyz;
+		vec3 sums = fetch_offset(offset - float(TAPS), one_x, one_y).xyz +
+			fetch_offset(float(TAPS) - offset, one_x, one_y).xyz;
 		signal += sums * vec3(luma_filter[i], chroma_filter[i], chroma_filter[i]);
 	}
-	signal += fetch_offset(0.0, 0.0).xyz *
+	signal += fetch_offset(0.0, 0.0, one_y).xyz *
 		vec3(luma_filter[TAPS], chroma_filter[TAPS], chroma_filter[TAPS]);
 	vec3 rgb = yiq2rgb(signal);
 	FragColor = vec4(pow(rgb, vec3(NTSC_CRT_GAMMA / NTSC_MONITOR_GAMMA)), 1.0);
